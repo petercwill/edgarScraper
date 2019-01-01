@@ -1,8 +1,8 @@
 import logging
 import requests
-from xbrlExtractor import XBRLExtractor
-from htmlExtractor import HTMLExtractor
-from textExtractor import TextExtractor
+from extractors.xbrlExtractor import XBRLExtractor
+from extractors.htmlExtractor import HTMLExtractor
+from extractors.textExtractor import TextExtractor
 
 
 class FileHandler(object):

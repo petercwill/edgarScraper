@@ -1,9 +1,9 @@
-from abc import ABC, abstractmethod
-import regexExp
-from resultSet import DebtLineItem
-import unicodedata
-import locale
 import re
+import locale
+import unicodedata
+from abc import ABC, abstractmethod
+import config.regexExp as regexExp
+from pipelineIO.resultSet import DebtLineItem
 
 
 class BaseExtractor(ABC):

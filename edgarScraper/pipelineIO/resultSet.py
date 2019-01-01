@@ -1,7 +1,7 @@
 from collections import namedtuple
 import nltk
 import numpy as np
-from constants import (
+from config.constants import (
     LONG_TERM_GAAP, SHORT_TERM_GAAP, RAW_PHRASES, RAW_PHRASE_GRAMS, RAW_TO_GAAP
 )
 

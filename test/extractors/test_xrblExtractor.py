@@ -1,7 +1,7 @@
-from xbrlExtractor import XBRLExtractor
-from fileHandler import FileHandler
 import unittest
-from resultSet import DebtLineItem
+from extractors.xbrlExtractor import XBRLExtractor
+from pipelineIO.fileHandler import FileHandler
+from pipelineIO.resultSet import DebtLineItem
 
 
 class HTMLExtractorTest(unittest.TestCase):

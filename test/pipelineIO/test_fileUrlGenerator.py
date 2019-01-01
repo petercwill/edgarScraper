@@ -1,5 +1,5 @@
 import unittest
-from fileUrlGenerator import FileUrlGenerator
+from pipelineIO.fileUrlGenerator import FileUrlGenerator
 
 
 class FileUrlIteratorTest(unittest.TestCase):

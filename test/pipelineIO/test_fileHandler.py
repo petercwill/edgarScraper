@@ -1,6 +1,6 @@
 import unittest
-from fileHandler import FileHandler
-from resultSet import DebtLineItem
+from pipelineIO.fileHandler import FileHandler
+from pipelineIO.resultSet import DebtLineItem
 
 
 class FileHandlerTest(unittest.TestCase):

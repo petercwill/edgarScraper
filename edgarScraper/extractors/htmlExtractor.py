@@ -1,6 +1,6 @@
 import re
 import regexExp
-from baseExtractor import BaseExtractor
+from extractors.baseExtractor import BaseExtractor
 from bs4 import BeautifulSoup
 
 

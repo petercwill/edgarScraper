@@ -1,9 +1,9 @@
-import regexExp
+import constants.regexExp as regexExp
 import re
-from baseExtractor import BaseExtractor
+from extractors.baseExtractor import BaseExtractor
 import dateutil.parser
 from bs4 import BeautifulSoup
-from resultSet import DebtLineItem
+from pipelineIO.resultSet import DebtLineItem
 
 
 class XBRLExtractor(BaseExtractor):

@@ -1,6 +1,6 @@
 import unittest
-from resultSet import DebtLineItem, ResultSet
 from datetime import date
+from pipelineIO.resultSet import DebtLineItem, ResultSet
 
 
 class ResultSetTest(unittest.TestCase):

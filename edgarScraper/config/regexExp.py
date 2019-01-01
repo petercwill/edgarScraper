@@ -1,6 +1,9 @@
 import re
-from regexUtils import makeFilterRegex, makeHTMLRegex, makeJointRegexNoNumbers
-from constants import LONG_TERM_GAAP, SHORT_TERM_GAAP
+from config.regexUtils import (
+    makeFilterRegex, makeHTMLRegex, makeJointRegexNoNumbers
+)
+from config.constants import LONG_TERM_GAAP, SHORT_TERM_GAAP
+
 
 NUMBER = r"(\$.{0,}?)?\s?(?P<value>\(?(-+|blank|\d{1,3}\.\d*|\d{1,3}(,\d{3})*)\s?\)?)"
 

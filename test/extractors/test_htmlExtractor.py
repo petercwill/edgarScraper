@@ -1,7 +1,7 @@
-from htmlExtractor import HTMLExtractor
-from fileHandler import FileHandler
 import unittest
-from resultSet import DebtLineItem
+from extractors.htmlExtractor import HTMLExtractor
+from pipelineIO.fileHandler import FileHandler
+from pipelineIO.resultSet import DebtLineItem
 
 
 class HTMLExtractorTest(unittest.TestCase):
@@ -45,7 +45,3 @@ class HTMLExtractorTest(unittest.TestCase):
         result = self.he.processText(text)
         self.assertIsNotNone(result)
         self.assertIsInstance(result[0], DebtLineItem)
-
-
-if __name__ == '__main__':
-    unittest.main()

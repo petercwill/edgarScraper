@@ -1,4 +1,4 @@
-from baseExtractor import BaseExtractor
+from extractors.baseExtractor import BaseExtractor
 import regexExp
 import re
 
