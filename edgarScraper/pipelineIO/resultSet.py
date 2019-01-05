@@ -1,8 +1,11 @@
 from collections import namedtuple
 import nltk
 import numpy as np
-from config.constants import (
+from edgarScraper.config.constants import (
     LONG_TERM_GAAP, SHORT_TERM_GAAP, RAW_PHRASES, RAW_PHRASE_GRAMS, RAW_TO_GAAP
+)
+from edgarScraper.config.log import (
+    urlLogger, rejectedMatchLogger, matchLogger
 )
 
 DebtLineItem = namedtuple(
@@ -11,13 +14,32 @@ DebtLineItem = namedtuple(
 
 class ResultSet(object):
 
-    def __init__(self, url, jacThreshold=.3):
-
-        # final results
-        self.finalLongTerm = None
-        self.finalShortTerm = None
-        self.url = url
+    def __init__(
+        self,
+        lineItems,
+        cik=None,
+        name=None,
+        date=None,
+        extractCode=None,
+        jacThreshold=.3
+    ):
+        self.lineItems = lineItems
+        self.CIK = cik
+        self.NAME = name
+        self.DATE = date
+        self.EXTRACTCODE = extractCode
         self.jacThreshold = jacThreshold
+        self.FINALLONGTERM = None
+        self.FINALSHORTTERM = None
+        self.urlLog = urlLogger
+        self.rejectLog = rejectedMatchLogger
+        self.matchLog = matchLogger
+        self.writeAttrs = (
+            [
+                "CIK", "NAME", "DATE", "FINALSHORTTERM", "FINALLONGTERM",
+                "EXTRACTCODE"
+            ]
+        )
 
         for item in SHORT_TERM_GAAP + LONG_TERM_GAAP:
             setattr(self, item, None)
@@ -43,7 +65,7 @@ class ResultSet(object):
             ) and (curr.date < lineItem.date):
                 setattr(self, lineItem.name, lineItem)
 
-    def addHTMLLineItem(self, lineItem):
+    def addAndMatchLineItem(self, lineItem):
 
         nameGrams = set(nltk.ngrams(lineItem.name.upper(), n=3))
         simScores = [
@@ -56,9 +78,10 @@ class ResultSet(object):
         attrName = RAW_TO_GAAP[matchWord]
 
         if jacScore > self.jacThreshold:
-            print('Rejecting {} due to bad match similarity'.format(lineItem))
+            self.rejectLog.debug('{}'.format(lineItem.name))
 
         else:
+            self.matchLog.debug('{}||{}'.format(lineItem.name, matchWord))
             curr = getattr(self, attrName)
             if curr is None:
                 setattr(self, attrName, lineItem)
@@ -69,16 +92,22 @@ class ResultSet(object):
                 if len(curr.name) > len(lineItem.name):
                     setattr(self, attrName, lineItem)
 
-    def processLineItems(self, lineItems):
+    def processLineItems(self):
+        if not self.lineItems:
+            return
 
-        for li in lineItems:
+        for li in self.lineItems:
             if li.elementType == "XBRL":
                 self.addXRBLLineItem(li)
 
-            elif li.elementType == 'HTML':
-                self.addHTMLLineItem(li)
+            else:
+                self.addAndMatchLineItem(li)
 
-    def rollUp(self, resultAttr, childAttrs):
+        self.formIntermediateResults()
+        self.formFinalLongTermResult()
+        self.formFinalShortTermResult()
+
+    def _rollUp(self, resultAttr, childAttrs):
         if all(getattr(self, c) is None for c in childAttrs):
             setattr(self, resultAttr, None)
 
@@ -91,225 +120,268 @@ class ResultSet(object):
                     val = getattr(self, c).value
                 totalVal += val
 
-            rollUpResult = DebtLineItem("Roll Up", resultAttr, val, None, None)
+            rollUpResult = DebtLineItem(
+                "Roll Up",
+                resultAttr,
+                totalVal,
+                None,
+                None
+            )
             setattr(self, resultAttr, rollUpResult)
 
     def formIntermediateResults(self):
-        if not self.LongTermNotesPayable:
+        if not self.LONGTERMNOTESPAYABLE:
 
-            self.rollUp(
-                "LongTermNotesPayable",
+            self._rollUp(
+                "LONGTERMNOTESPAYABLE",
                 [
-                    "OtherLongTermNotesPayable",
-                    "NotesPayableToBankNoncurrent",
-                    "ConvertibleLongTermNotesPayable",
-                    "SeniorLongTermNotes",
-                    "JuniorSubordinatedLongTermNotes"
+                    "OTHERLONGTERMNOTESPAYABLE",
+                    "NOTESPAYABLETOBANKNONCURRENT",
+                    "CONVERTIBLELONGTERMNOTESPAYABLE",
+                    "SENIORLONGTERMNOTES",
+                    "JUNIORSUBORDINATEDLONGTERMNOTES"
                 ]
             )
 
-        if not self.LongTermLoansPayable:
+        if not self.LONGTERMLOANSPAYABLE:
 
-            self.rollUp(
-                "LongTermLoansPayable",
+            self._rollUp(
+                "LONGTERMLOANSPAYABLE",
                 [
-                    "OtherLoansPayableLongTerm",
-                    "LongTermLoansFromBank"
+                    "OTHERLOANSPAYABLELONGTERM",
+                    "LONGTERMLOANSFROMBANK"
                 ]
             )
 
-        if not self.LongTermNotesAndLoans:
+        if not self.LONGTERMNOTESANDLOANS:
 
-            self.rollUp(
-                "LongTermNotesAndLoans",
+            self._rollUp(
+                "LONGTERMNOTESANDLOANS",
                 [
-                    "LongTermNotesPayable",
-                    "LongTermLoansPayable"
+                    "LONGTERMNOTESPAYABLE",
+                    "LONGTERMLOANSPAYABLE"
                 ]
             )
 
-        if not self.LongTermDebtNoncurrent:
+        if not self.LONGTERMDEBTNONCURRENT:
 
-            self.rollUp(
-                "LongTermDebtNoncurrent",
+            self._rollUp(
+                "LONGTERMDEBTNONCURRENT",
                 [
-                    "OtherLongTermDebtNoncurrent"
-                    "LongTermNotesAndLoans",
-                    "LongTermPollutionControlBond",
-                    "LongTermTransitionBond",
-                    "ConvertibleSubordinatedDebtNoncurrent",
-                    "ConvertibleDebtNoncurrent",
-                    "UnsecuredLongTermDebt",
-                    "SubordinatedLongTermDebt",
-                    "SecuredLongTermDebt",
-                    "ConstructionLoanNoncurrent",
-                    "CommercialPaperNoncurrent",
-                    "LongTermLineOfCredit"
+                    "OTHERLONGTERMDEBTNONCURRENT",
+                    "LONGTERMNOTESANDLOANS",
+                    "LONGTERMTRANSITIONBOND",
+                    "CONVERTIBLESUBORDINATEDDEBTNONCURRENT",
+                    "CONVERTIBLEDEBTNONCURRENT",
+                    "UNSECUREDLONGTERMDEBT",
+                    "SUBORDINATEDLONGTERMDEBT",
+                    "SECUREDLONGTERMDEBT",
+                    "CONSTRUCTIONLOANNONCURRENT",
+                    "COMMERCIALPAPERNONCURRENT",
+                    "LONGTERMLINEOFCREDIT"
 
                 ]
             )
 
-        if not self.LoansPayableCurrent:
+        if not self.LOANSPAYABLECURRENT:
 
-            self.rollUp(
-                "LoansPayableCurrent",
+            self._rollUp(
+                "LOANSPAYABLECURRENT",
                 [
-                    "LoansPayableToBankCurrent",
-                    "OtherLoansPayableCurrent"
+                    "LOANSPAYABLETOBANKCURRENT",
+                    "OTHERLOANSPAYABLECURRENT"
                 ]
             )
 
-        if not self.NotesPayableCurrent:
+        if not self.NOTESPAYABLECURRENT:
 
-            self.rollUp(
-                "NotesPayableCurrent",
+            self._rollUp(
+                "NOTESPAYABLECURRENT",
                 [
-                    "MediumtermNotesCurrent",
-                    "ConvertibleNotesPayableCurrent",
-                    "NotesPayableToBankCurrent",
-                    "SeniorNotesCurrent",
-                    "JuniorSubordinatedNotesCurrent",
-                    "OtherNotesPayableCurrent"
+                    "MEDIUMTERMNOTESCURRENT",
+                    "CONVERTIBLENOTESPAYABLECURRENT",
+                    "NOTESPAYABLETOBANKCURRENT",
+                    "SENIORNOTESCURRENT",
+                    "JUNIORSUBORDINATEDNOTESCURRENT",
+                    "OTHERNOTESPAYABLECURRENT"
                 ]
             )
 
-        if not self.NotesAndLoansPayableCurrent:
+        if not self.NOTESANDLOANSPAYABLECURRENT:
 
-            self.rollUp(
-                "NotesAndLoansPayableCurrent",
+            self._rollUp(
+                "NOTESANDLOANSPAYABLECURRENT",
                 [
-                    "LoansPayableCurrent",
-                    "NotesPayableCurrent"
+                    "LOANSPAYABLECURRENT",
+                    "NOTESPAYABLECURRENT"
                 ]
             )
 
-        if not self.LongTermDebtCurrent:
+        if not self.LONGTERMDEBTCURRENT:
 
-            self.rollUp(
-                "LongTermDebtCurrent",
+            self._rollUp(
+                "LONGTERMDEBTCURRENT",
                 [
-                    "SecuredDebtCurrent",
-                    "ConvertibleDebtCurrent",
-                    "UnsecuredDebtCurrent",
-                    "SubordinatedDebtCurrent",
-                    "ConvertibleSubordinatedDebtCurrent",
-                    "LongTermCommercialPaperCurrent",
-                    "LongTermConstructionLoanCurrent",
-                    "LongtermTransitionBondCurrent",
-                    "LongtermPollutionControlBondCurrent",
-                    "OtherLongTermDebtCurrent",
-                    "LinesOfCreditCurrent",
-                    "NotesAndLoansPayableCurrent"
+                    "SECUREDDEBTCURRENT",
+                    "CONVERTIBLEDEBTCURRENT",
+                    "UNSECUREDDEBTCURRENT",
+                    "SUBORDINATEDDEBTCURRENT",
+                    "CONVERTIBLESUBORDINATEDDEBTCURRENT",
+                    "LONGTERMCOMMERCIALPAPERCURRENT",
+                    "LONGTERMCONSTRUCTIONLOANCURRENT",
+                    "LONGTERMTRANSITIONBONDCURRENT",
+                    "LONGTERMPOLLUTIONCONTROLBONDCURRENT",
+                    "OTHERLONGTERMDEBTCURRENT",
+                    "LINESOFCREDITCURRENT",
+                    "NOTESANDLOANSPAYABLECURRENT"
                 ]
             )
 
-        if not self.LongTermDebtAndCapitalLeaseObligationsCurrent:
+        if not self.LONGTERMDEBTANDCAPITALLEASEOBLIGATIONSCURRENT:
 
-            self.rollUp(
-                "LongTermDebtAndCapitalLeaseObligationsCurrent",
+            self._rollUp(
+                "LONGTERMDEBTANDCAPITALLEASEOBLIGATIONSCURRENT",
                 [
-                    "LongTermDebtCurrent",
-                    "CapitalLeaseObligationsCurrent"
+                    "LONGTERMDEBTCURRENT",
+                    "CAPITALLEASEOBLIGATIONSCURRENT"
                 ]
             )
 
-        if not self.ShortTermBorrowings:
+        if not self.SHORTTERMBORROWINGS:
 
-            self.rollUp(
-                "ShortTermBorrowings",
+            self._rollUp(
+                "SHORTTERMBORROWINGS",
                 [
-                    "BankOverdrafts",
-                    "CommercialPaper",
-                    "BridgeLoan",
-                    "ConstructionLoan",
-                    "ShortTermBankLoansAndNotesPayable",
-                    "ShortTermNonBankLoansAndNotesPayable",
-                    "SecuritiesSoldUnderAgreementsToRepurchase",
-                    "WarehouseAgreementBorrowings",
-                    "OtherShortTermBorrowings",
+                    "BANKOVERDRAFTS",
+                    "COMMERCIALPAPER",
+                    "BRIDGELOAN",
+                    "CONSTRUCTIONLOAN",
+                    "SHORTTERMBANKLOANSANDNOTESPAYABLE",
+                    "SHORTTERMNONBANKLOANSANDNOTESPAYABLE",
+                    "SECURITIESSOLDUNDERAGREEMENTSTOREPURCHASE",
+                    "WAREHOUSEAGREEMENTBORROWINGS",
+                    "OTHERSHORTTERMBORROWINGS",
                 ]
             )
 
-        if not self.DebtCurrent:
+        if not self.DEBTCURRENT:
 
-            self.rollUp(
-                "DebtCurrent",
+            self._rollUp(
+                "DEBTCURRENT",
                 [
-                    "LongTermDebtAndCapitalLeaseObligationsCurrent",
-                    "ShortTermBorrowings"
+                    "LONGTERMDEBTANDCAPITALLEASEOBLIGATIONSCURRENT",
+                    "SHORTTERMBORROWINGS"
                 ]
             )
 
-        if not self.AccountsPayableAndAccruedLiabilitiesCurrent:
+        if not self.ACCOUNTSPAYABLEANDACCRUEDLIABILITIESCURRENT:
 
-            self.rollup(
-                "AccountsPayableAndAccruedLiabilitiesCurrent",
+            self._rollUp(
+                "ACCOUNTSPAYABLEANDACCRUEDLIABILITIESCURRENT",
                 [
-                    "AccountsPayableCurrent",
-                    "AccountsPayableTradeCurrent",
-                    "AccountsPayableOtherCurrent",
-                    "AccruedLiabilitiesCurrent",
-                    "OtherAccruedLiabilitiesCurrent",
-                    "AccountsPayableRelatedPartiesCurrent"
+                    "ACCOUNTSPAYABLECURRENT",
+                    "ACCOUNTSPAYABLETRADECURRENT",
+                    "ACCOUNTSPAYABLEOTHERCURRENT",
+                    "ACCRUEDLIABILITIESCURRENT",
+                    "OTHERACCRUEDLIABILITIESCURRENT",
+                    "ACCOUNTSPAYABLERELATEDPARTIESCURRENT"
+                ]
+            )
+
+        if not self.LIABILITIESCURRENT:
+
+            self._rollUp(
+                "LIABILITIESCURRENT",
+                [
+                    "ACCOUNTSPAYABLEANDACCRUEDLIABILITIESCURRENT",
+                    "DEBTCURRENT",
+                    "OTHERLIABILITIESCURRENT"
                 ]
             )
 
     def formFinalLongTermResult(self):
 
-        # reference http://www.xbrlsite.com/US-GAAP/Templates/2010-09-30/
-        # BalanceSheet/abc-20101231_MeasureRelations.html
+        # reference http://www.xbrlsite.com/2014/Protototype/Classes/
+        # currentLiabilities_Tree.html
 
-        if self.LongTermDebtNoncurrent:
-            self.finalLongTerm = self.LongTermDebtNoncurrent.value
+        if (
+            self.LONGTERMDEBTNONCURRENT and
+            self.LONGTERMDEBTNONCURRENT.value != 0
+        ):
+            self.FINALLONGTERM = self.LONGTERMDEBTNONCURRENT.value
 
-        elif self.CapitalLeaseObligationsNoncurrent:
+        elif (
+            self.LONGTERMDEBTANDCAPITALLEASEOBLIGATIONS and
+            self.LONGTERMDEBTANDCAPITALLEASEOBLIGATIONS.value != 0
+        ):
 
-            self.finalLongTerm = (
-                self.LongTermDebtAndCapitalLeaseObligations.value
+            self.FINALLONGTERM = (
+                self.LONGTERMDEBTANDCAPITALLEASEOBLIGATIONS.value
             )
 
-            if self.CapitalLeaseObligationsNoncurrent:
-                self.finalLongTerm -= (
-                    self.CapitalLeaseObligationsNoncurrent.value
+            if self.CAPITALLEASEOBLIGATIONSNONCURRENT:
+                self.FINALLONGTERM -= (
+                    self.CAPITALLEASEOBLIGATIONSNONCURRENT.value
                 )
 
-        elif self.LiabilitiesNoncurrent:
-            self.finalLongTerm = self.LiabilitiesNoncurrent.value
+        elif self.LIABILITIESNONCURRENT:
+            self.FINALLONGTERM = self.LIABILITIESNONCURRENT.value
 
-            if self.LiabilitiesOtherThanLongtermDebtNoncurrent:
-                self.finalLongTerm -= (
-                    self.LiabilitiesOtherThanLongtermDebtNoncurrent.value
+            if self.LIABILITIESOTHERTHANLONGTERMDEBTNONCURRENT:
+                self.FINALLONGTERM -= (
+                    self.LIABILITIESOTHERTHANLONGTERMDEBTNONCURRENT.value
                 )
 
     def formFinalShortTermResult(self):
 
-        if self.ShortTermBorrowings:
-            self.finalShortTerm = self.ShortTermBorrowings.value
+        if self.SHORTTERMBORROWINGS and self.SHORTTERMBORROWINGS != 0:
+            self.FINALSHORTTERM = self.SHORTTERMBORROWINGS.value
 
-        elif self.DebtCurrent:
-            self.finalShortTerm = self.DebtCurrent.value
+        elif self.DEBTCURRENT and self.DEBTCURRENT != 0:
+            self.FINALSHORTTERM = self.DEBTCURRENT.value
 
-            if self.LongTermDebtAndCapitalLeaseObligationsCurrent:
-                self.finalShortTerm -= (
-                    self.LongTermDebtAndCapitalLeaseObligationsCurrent.value
-                )
-
-        elif self.LiabilitiesCurrent:
-            self.finalShortTerm = self.LiabilitiesCurrent.value
-
-        elif self.AccountsPayableAndAccruedLiabilitiesCurrent:
-            self.finalShortTerm = (
-                self.AccountsPayableAndAccruedLiabilitiesCurrent.value
+        elif (
+            self.ACCOUNTSPAYABLEANDACCRUEDLIABILITIESCURRENT
+            and self.ACCOUNTSPAYABLEANDACCRUEDLIABILITIESCURRENT != 0
+        ):
+            self.FINALSHORTTERM = (
+                self.ACCOUNTSPAYABLEANDACCRUEDLIABILITIESCURRENT.value
             )
+
+        elif self.LIABILITIESCURRENT:
+            self.FINALSHORTTERM = self.LIABILITIESCURRENT.value
 
     def __str__(self):
 
-        returnStrings = ["RESULT_SET"]
+        returnStrings = []
 
         for term in SHORT_TERM_GAAP + LONG_TERM_GAAP:
             res = getattr(self, term)
             if res:
-                returnStrings.append("{}".format(res))
+                returnStrings.append(str(res.value))
+            else:
+                returnStrings.append("")
 
-        return "\t\n".join(returnStrings)
+        for term in self.writeAttrs:
+            res = getattr(self, term)
+            if res:
+                returnStrings.append(str(res))
+            else:
+                returnStrings.append("")
 
+        finalString = "||".join(returnStrings) + "\n"
+        return finalString
+
+    def _toDict(self):
+        d = {
+            term: getattr(self, term).value if getattr(self, term) else np.NaN
+            for term in SHORT_TERM_GAAP + LONG_TERM_GAAP
+        }
+
+        d['FINALSHORTTERM'] = self.FINALSHORTTERM
+        d['FINALLONGTERM'] = self.FINALLONGTERM
+        d['NAME'] = self.NAME
+        d['CIK'] = self.CIK
+        d['DATE'] = self.DATE
+
+        return d

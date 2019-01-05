@@ -2,8 +2,8 @@ import re
 import locale
 import unicodedata
 from abc import ABC, abstractmethod
-import config.regexExp as regexExp
-from pipelineIO.resultSet import DebtLineItem
+import edgarScraper.config.regexExp as regexExp
+from edgarScraper.pipelineIO.resultSet import DebtLineItem
 
 
 class BaseExtractor(ABC):
@@ -32,15 +32,25 @@ class BaseExtractor(ABC):
             value = locale.atof(value)
             return value
         except ValueError:
-            print('Skipping Match, unable to convert to numeric')
             return
+
+    def _converttoCaps(self, lineItem):
+        if lineItem.elementType != "XBRL":
+
+            return DebtLineItem(
+                lineItem.elementType,
+                lineItem.name.upper(),
+                lineItem.value,
+                lineItem.date,
+                lineItem.context
+            )
+        else:
+            return lineItem
 
     def _cleanAndFilterLineItem(self, lineItem):
 
-
         name = re.sub(r'[^0-9a-zA-Z]+', ' ', lineItem.name).strip()
         if re.search(regexExp.FILTER, name):
-            print('filtering {}'.format(name))
             return
 
         else:
@@ -50,13 +60,16 @@ class BaseExtractor(ABC):
                 val = '0.0'
             val = self._tryToAtoF(val)
 
-        return DebtLineItem(
+        li = DebtLineItem(
             lineItem.elementType,
             name,
             val,
             lineItem.date,
             lineItem.context
         )
+
+        li = self._converttoCaps(li)
+        return li
 
     def _matchRows(self, regexExp, row_string, kind):
         m = re.match(regexExp, row_string)
@@ -71,7 +84,7 @@ class BaseExtractor(ABC):
             cleanLineItem = self._cleanAndFilterLineItem(rawLineItem)
             return cleanLineItem
 
-    def _string2Result(self, string, kind):
+    def _string2LineItem(self, string, kind):
 
         result = self._matchRows(
             regexExp.SHORT_TERM,
@@ -82,7 +95,7 @@ class BaseExtractor(ABC):
             return result
 
         result = self._matchRows(
-            regexExp.SHORT_TERM,
+            regexExp.LONG_TERM,
             string,
             kind
         )

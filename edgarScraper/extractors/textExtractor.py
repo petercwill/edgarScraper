@@ -1,6 +1,6 @@
-from extractors.baseExtractor import BaseExtractor
-import regexExp
 import re
+import edgarScraper.config.regexExp as regexExp
+from edgarScraper.extractors.baseExtractor import BaseExtractor
 
 
 class TextExtractor(BaseExtractor):
@@ -92,7 +92,7 @@ class TextExtractor(BaseExtractor):
                 name = re.sub(r'\s{3,}', '   ', name)
                 value = m.group('value')
                 row_string = name + "   " + value
-                result = self._string2Result(row_string, 'TEXT')
+                result = self._string2LineItem(row_string, 'TEXT')
                 results.append(result)
 
         return(list(filter(None, results)))
@@ -102,7 +102,7 @@ class TextExtractor(BaseExtractor):
         for table in self._getRelevantTables(text):
             lines = table.split("\n")
             for row_string in self._parseTableByPosition(lines):
-                result = self._string2Result(row_string, 'TEXT')
+                result = self._string2LineItem(row_string, 'TEXT')
                 results.append(result)
 
         return(list(filter(None, results)))
@@ -110,13 +110,12 @@ class TextExtractor(BaseExtractor):
     def _processSection(self, text):
         results = self._lookForTables(text)
         if not results:
-            print('Text Table Search Failed, Falling back to text search')
             results = self._freeSearchText(text)
 
         return results
 
     def processText(self, text):
         textSections = self._getSections(text)
-        textResults = self._processSection(textSections)
-        return textResults
+        textLineItems = self._processSection(textSections)
+        return textLineItems
 

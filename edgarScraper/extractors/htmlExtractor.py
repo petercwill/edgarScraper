@@ -1,7 +1,7 @@
 import re
-import regexExp
-from extractors.baseExtractor import BaseExtractor
 from bs4 import BeautifulSoup
+import edgarScraper.config.regexExp as regexExp
+from edgarScraper.extractors.baseExtractor import BaseExtractor
 
 
 class HTMLExtractor(BaseExtractor):
@@ -35,9 +35,15 @@ class HTMLExtractor(BaseExtractor):
         for navString in soup.findAll(text=regexExp.TAGS_WO_NUMS):
 
             elm = navString.parent.findNext()
+            if not elm:
+                continue
+
             value = elm.text
 
-            while re.match(regexExp.EMPTY_OR_DOLLAR, value):
+            while (
+                re.match(regexExp.EMPTY_OR_DOLLAR, value) and
+                elm.findNext()
+            ):
                 elm = elm.findNext()
                 value = elm.text
 
@@ -51,7 +57,7 @@ class HTMLExtractor(BaseExtractor):
         for table in self._getRelevantTables(soup):
             for row in table.findAll(re.compile("tr", re.I)):
                 row_string = self._row2Text(row.text)
-                result = self._string2Result(row_string, 'HTML')
+                result = self._string2LineItem(row_string, 'HTML')
                 results.append(result)
 
         return(list(filter(None, results)))
@@ -60,7 +66,7 @@ class HTMLExtractor(BaseExtractor):
         results = []
         for elmString in self._getReleventElms(soup):
             row_string = self._row2Text(elmString)
-            result = self._string2Result(row_string, 'HTML')
+            result = self._string2LineItem(row_string, 'HTML')
             results.append(result)
 
         return(list(filter(None, results)))
@@ -73,7 +79,6 @@ class HTMLExtractor(BaseExtractor):
     def _processSection(self, soup):
         results = self._lookForTables(soup)
         if not results:
-            print('HTML Table Search Failed')
             results = self._genericElements(soup)
 
         return results
@@ -81,5 +86,5 @@ class HTMLExtractor(BaseExtractor):
     def processText(self, text):
         htmlSections = self._getSections(text)
         soup = BeautifulSoup(htmlSections, features="lxml")
-        htmlResults = self._processSection(soup)
-        return htmlResults
+        htmlLineItems = self._processSection(soup)
+        return htmlLineItems

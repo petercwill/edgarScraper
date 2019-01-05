@@ -1,8 +1,8 @@
 import re
-from config.regexUtils import (
+from edgarScraper.config.regexUtils import (
     makeFilterRegex, makeHTMLRegex, makeJointRegexNoNumbers
 )
-from config.constants import LONG_TERM_GAAP, SHORT_TERM_GAAP
+from edgarScraper.config.constants import LONG_TERM_GAAP, SHORT_TERM_GAAP
 
 
 NUMBER = r"(\$.{0,}?)?\s?(?P<value>\(?(-+|blank|\d{1,3}\.\d*|\d{1,3}(,\d{3})*)\s?\)?)"
@@ -11,6 +11,7 @@ W_SPACE = r'.{0,5}?'
 MODIFIER_SPACE = r'.{0,25}?'
 NEG_SPACE = r'.{0,10}?'
 FREE_TEXT_SPACE = r'.{0,100}?[\s\S]{0,1}?.{0,100}?'
+
 
 SHORT_TERM_MODIFIERS = [
     r'Short' + W_SPACE + 'Term',
@@ -56,19 +57,26 @@ FILTER_WORDS = [
     r'COMMON STOCK',
     r'STOCKHOLDER',
     r'SHAREHOLDER',
+    r'STOCK',
+    r'ASSET',
     r'EQUITY',
     r'DECREASE',
     r'INCREASE',
     r'INTEREST',
+    r'ISSUED',
+    r'ISSUANCE',
     r'IX',
     r'ACTIVITY',
-    r'PRINCIPAL PAYMENT',
-    r'PAYMENT',
     r'PROCEEDS',
     r'RETIREMENT',
     r'SCHEDULE',
     r'TAX LIABILITY',
-    r'COST OF ISSUANCE'
+    r'COST OF ISSUANCE',
+    r'SHAREOWNER',
+    r'REDEMPTION',
+    r'SECURITIES',
+    r'RETIRED',
+    r'CAPITALIZATION',
 ]
 
 SHORT_TERM_MISC = [r'(Accounts' + W_SPACE + 'Payable)']
@@ -131,10 +139,18 @@ XBRL_DATE = re.compile(
     re.I
 )
 
-GAAP_RE_DICT = {
-    tag: re.compile(r'^us-gaap:{}$'.format(tag), re.IGNORECASE)
-    for tag in SHORT_TERM_GAAP + LONG_TERM_GAAP
-}
+# GAAP_RE_DICT = {
+#     tag: re.compile(r'^us-gaap:{}$'.format(tag), re.IGNORECASE)
+#     for tag in SHORT_TERM_GAAP + LONG_TERM_GAAP
+# }
+
+GAAP_RE = re.compile(
+    "|".join(
+        [r'(^us-gaap:'+term+r'$)' for term in SHORT_TERM_GAAP + LONG_TERM_GAAP]
+    ),
+    re.I
+)
+
 
 NOTES = re.compile(
     r'\(NOTES?\s?\d+(,\s?\d)*(,?\s?and \d+)?\)',
@@ -156,3 +172,4 @@ TABLE = re.compile(r'TABLE', re.I)
 EMPTY_OR_DOLLAR = re.compile(r'(^\s{0,}?\$\s{0,}?)|(^$)|\s+', re.I)
 TEXT_TABLE_COLUMNS = re.compile(r'.{0,}?<s>.{0,}?<c>.{0,}?<c>', re.I)
 
+EDGAR_SUB = re.compile('edgar/')

@@ -1,9 +1,9 @@
-import constants.regexExp as regexExp
 import re
-from extractors.baseExtractor import BaseExtractor
 import dateutil.parser
 from bs4 import BeautifulSoup
-from pipelineIO.resultSet import DebtLineItem
+from edgarScraper.extractors.baseExtractor import BaseExtractor
+import edgarScraper.config.regexExp as regexExp
+from edgarScraper.pipelineIO.resultSet import DebtLineItem
 
 
 class XBRLExtractor(BaseExtractor):
@@ -30,25 +30,24 @@ class XBRLExtractor(BaseExtractor):
         return (xbrlSection, xbrlContextSection or xbrlSection)
 
     def _processSection(self, xbrlSection, xbrlContext):
-        xbrlResults = []
+        xbrlLineItems = []
         soup = BeautifulSoup(xbrlSection, 'lxml')
         contextSoup = BeautifulSoup(xbrlContext, 'lxml')
 
-        for (tag, regex) in regexExp.GAAP_RE_DICT.items():
-            res = soup.find_all(regex)
-            for r in res:
-                context = r.get('contextref')
-                date = self._findDate(context, contextSoup)
-                rawLineItem = DebtLineItem(
-                    'XBRL', tag, r.text, date, context
-                )
-                cleanLineItem = self._cleanAndFilterLineItem(rawLineItem)
-                xbrlResults.append(cleanLineItem)
+        for r in soup.find_all(regexExp.GAAP_RE):
+            name = re.sub('us-gaap:', '', r.name).strip().upper()
+            context = r.get('contextref')
+            date = self._findDate(context, contextSoup)
+            rawLineItem = DebtLineItem(
+                'XBRL', name, r.text, date, context
+            )
+            cleanLineItem = self._cleanAndFilterLineItem(rawLineItem)
+            xbrlLineItems.append(cleanLineItem)
 
-        return xbrlResults
+        return xbrlLineItems
 
     def processText(self, text):
 
         xbrlSection, xbrlContextSection = self._getSections(text)
-        xbrlResults = self._processSection(xbrlSection, xbrlContextSection)
-        return xbrlResults
+        xbrlLineItems = self._processSection(xbrlSection, xbrlContextSection)
+        return xbrlLineItems
