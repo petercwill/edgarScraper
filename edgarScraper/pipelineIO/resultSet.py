@@ -5,11 +5,16 @@ from edgarScraper.config.constants import (
     LONG_TERM_GAAP, SHORT_TERM_GAAP, RAW_PHRASES, RAW_PHRASE_GRAMS, RAW_TO_GAAP
 )
 from edgarScraper.config.log import (
-    urlLogger, rejectedMatchLogger, matchLogger
+    urlLogger, rejectedMatchLogger, matchLogger, edgarScraperLog
 )
 
 DebtLineItem = namedtuple(
-    'DebtLineItem', 'elementType name value date context')
+    'DebtLineItem', 'elementType name value date context'
+)
+
+DebtDisclosure = namedtuple(
+    'DebtDisclosure', 'DATE CIK ELEMENTYPE TEXT'
+)
 
 
 class ResultSet(object):
@@ -21,7 +26,7 @@ class ResultSet(object):
         name=None,
         date=None,
         extractCode=None,
-        jacThreshold=.3
+        jacThreshold=.4
     ):
         self.lineItems = lineItems
         self.CIK = cik
@@ -47,7 +52,11 @@ class ResultSet(object):
     def addXRBLLineItem(self, lineItem):
 
         if not hasattr(self, lineItem.name):
-            raise ValueError('Bad Item')
+            edgarScraperLog.error(
+                'bad xbrl match found for {}'.format(lineItem.name)
+            )
+            print(lineItem)
+            return
 
         curr = getattr(self, lineItem.name)
         if curr is None:
@@ -378,10 +387,7 @@ class ResultSet(object):
             for term in SHORT_TERM_GAAP + LONG_TERM_GAAP
         }
 
-        d['FINALSHORTTERM'] = self.FINALSHORTTERM
-        d['FINALLONGTERM'] = self.FINALLONGTERM
-        d['NAME'] = self.NAME
-        d['CIK'] = self.CIK
-        d['DATE'] = self.DATE
+        for term in self.writeAttrs:
+            d[term] = getattr(self, term)
 
         return d

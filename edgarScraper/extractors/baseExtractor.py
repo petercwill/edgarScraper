@@ -59,17 +59,18 @@ class BaseExtractor(ABC):
             if val == '':
                 val = '0.0'
             val = self._tryToAtoF(val)
+            if not (val is None):
 
-        li = DebtLineItem(
-            lineItem.elementType,
-            name,
-            val,
-            lineItem.date,
-            lineItem.context
-        )
+                li = DebtLineItem(
+                    lineItem.elementType,
+                    name,
+                    val,
+                    lineItem.date,
+                    lineItem.context
+                )
 
-        li = self._converttoCaps(li)
-        return li
+                li = self._converttoCaps(li)
+                return li
 
     def _matchRows(self, regexExp, row_string, kind):
         m = re.match(regexExp, row_string)
@@ -85,7 +86,6 @@ class BaseExtractor(ABC):
             return cleanLineItem
 
     def _string2LineItem(self, string, kind):
-
         result = self._matchRows(
             regexExp.SHORT_TERM,
             string,

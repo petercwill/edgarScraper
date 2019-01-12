@@ -4,7 +4,7 @@ from edgarScraper.extractors.htmlExtractor import HTMLExtractor
 from edgarScraper.extractors.textExtractor import TextExtractor
 from edgarScraper.config.log import urlLogger
 # from edgarScraper.pipelineIO.fileUrlGenerator import FileUrlGenerator
-from edgarScraper.pipelineIO.resultSet import ResultSet
+from edgarScraper.pipelineIO.resultSet import ResultSet, DebtDisclosure
 
 
 class ResultGenerator(object):
@@ -37,31 +37,33 @@ class ResultGenerator(object):
 
     def _parseWatefall(self, text):
 
+        debtDisclosure = None
+       
         if not text:
-            return ([], 'BAD_URL')
+            return ([], 'BAD_URL', None)
 
-        lineItems = self.xbrlExtractor.processText(text)
+        lineItems, debtDisclosure = self.xbrlExtractor.processText(text)
         if lineItems:
             # self.xbrlCount += 1
-            return (lineItems, 'XBRL')
+            return (lineItems, 'XBRL', debtDisclosure)
 
         lineItems = self.htmlExtractor.processText(text)
         if lineItems:
             # self.htmlCount += 1
-            return (lineItems, 'HTML')
+            return (lineItems, 'HTML', debtDisclosure)
 
         lineItems = self.textExtractor.processText(text)
         if lineItems:
             # self.textCount += 1
-            return (lineItems, 'TEXT')
+            return (lineItems, 'TEXT', debtDisclosure)
 
         # self.failCount += 1
-        return ([], 'FAILED')
+        return ([], 'FAILED', debtDisclosure)
 
     def fileUrl2Result(self, indexResult):
         text, code = self._getFile(indexResult.url)
 
-        lineItems, extractCode = self._parseWatefall(text)
+        lineItems, extractCode, debtDisclosure = self._parseWatefall(text)
         self.log.debug(
             'Extracted {} possible lineItems using {}'.format(
                 len(lineItems),
@@ -76,37 +78,12 @@ class ResultGenerator(object):
             extractCode
         )
 
-        rs.processLineItems()            
-        return rs
+        dd = DebtDisclosure(
+            indexResult.date,
+            indexResult.cik,
+            extractCode,
+            debtDisclosure
+        )
 
-    # def getResultGenerator(self):
-    #     count = 0
-    #     for indexResult in self.urlGen.getUrlGenerator():
-
-    #         if count >= self.maxFiles:
-    #             break
-
-    #         lineItems = self.url2LineItems(indexResult.url)
-    #         rs = ResultSet(
-    #             lineItems,
-    #             indexResult.cik,
-    #             indexResult.name,
-    #             indexResult.date
-    #         )
-
-    #         rs.processLineItems()
-    #         count += 1
-
-    #         if count % 100 == 0:
-    #             self.log.info(
-    #                 'Total {}: Xbrl: {}, Html: {}, Text: {}'
-    #                 ', Failures: {}'.format(
-    #                         count,
-    #                         self.xbrlCount,
-    #                         self.htmlCount,
-    #                         self.textCount,
-    #                         self.failCount
-    #                     )
-    #             )
-
-    #         yield rs
+        rs.processLineItems()
+        return (rs, dd)

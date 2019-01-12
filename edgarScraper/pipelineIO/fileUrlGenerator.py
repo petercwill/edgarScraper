@@ -45,10 +45,11 @@ def processIndex(masterIndexUrls, ciks):
                 )
 
                 result = IndexResult(
+                    None,
                     date,
                     name,
                     cik,
-                    filePath
+                    filePath,
                 )
                 dailyIndLogger.info("found {} in {}".format(cik, url))
                 results.append(result)
@@ -72,7 +73,7 @@ class FileUrlGenerator(object):
         self.ciks = ciks
         self.maxFiles = maxFiles
         self.nProcesses = nProcesses
-        self.qtrRe = re.compile(r'QTR[1-4]')
+        self.qtrRe = re.compile(r'QTR[2-4]')
         self.fileRe = re.compile(r'form')
         self._makeYearRe()
         self._makeCikSet()
@@ -118,6 +119,12 @@ class FileUrlGenerator(object):
         totalCount = 0
 
         for url in self._yieldMasterIndexUrl():
+
+            if url[-3:] == '.gz':
+                self.log.info(
+                    'Skipping compressed index file {}'.format(url)
+                )
+                continue
 
             dayCount = 0
             response = requests.get(url)

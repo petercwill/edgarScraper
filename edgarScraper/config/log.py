@@ -3,7 +3,7 @@ import os
 
 
 LOG_DIR = os.path.realpath(os.path.join(__file__, '../../../logs'))
-LOGGING_LEVEL = logging.DEBUG
+LOGGING_LEVEL = logging.INFO
 
 formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
 formatter2 = logging.Formatter('%(message)s')
@@ -38,14 +38,14 @@ dailyIndLogger = setup_logger(
 urlLogger = setup_logger(
     'urlLogger',
     os.path.join(LOG_DIR, 'urlLogger.log'),
-    logging.INFO
+    LOGGING_LEVEL
     )
 
 matchLogger = setup_logger(
     'matchLogger',
     os.path.join(LOG_DIR, 'matchLogger.log'),
-    logging.DEBUG.INFO,
-    logging.INFO
+    LOGGING_LEVEL,
+    formatter2
     )
 
 rejectedMatchLogger = setup_logger(

@@ -5,30 +5,35 @@ import multiprocessing
 from edgarScraper.pipelineIO.utils import iteratorSlice
 from edgarScraper.pipelineIO.fileUrlGenerator import FileUrlGenerator
 import os
+from edgarScraper.pipelineIO.resultSet import DebtDisclosure
+from collections import deque
 
-# distributed function - must be pickle-able, define at top-level
-# def _mpToFile(urlGen, file):
-
-#     processor = ResultGenerator()
-#     with open(file, 'a') as f:
-#         for (i, url) in enumerate(urlGen):
-#             res = processor.fileUrl2Result(url)
-#             f.write(str(res))
-#     return (i, None)
+DATA_DIR = os.path.realpath(
+    os.path.join(os.path.realpath(__file__), '../../data/')
+)
 
 
-def _mpToDf(urlGen, file):
-
+def _mpJob(urlGen, file):
     processor = ResultGenerator()
-    dictList = []
-    for (i, url) in enumerate(urlGen):
-        res = processor.fileUrl2Result(url)
-        if url.seqNo % 100 == 0:
-            edgarScraperLog.info('consuming file {}'.format(url.seqNo))
-        dictList.append(res._toDict())
-    #dictList = [processor.fileUrl2Result(url)._toDict() for url in urlGen]
-    df = pd.DataFrame.from_records(dictList)
-    return (len(dictList), df)
+    resDictList = []
+    ddList = []
+
+    for url in urlGen:
+
+        if url.seqNo < 43000:
+            return None, None
+
+        (res, dd) = processor.fileUrl2Result(url)
+        resDictList.append(res._toDict())
+        ddList.append(dd)
+
+    if url.seqNo % 100 == 0:
+        edgarScraperLog.info('finished consuming file {}'.format(url.seqNo))
+
+    resDf = pd.DataFrame.from_records(resDictList)
+    ddDf = pd.DataFrame.from_records(ddList, columns=DebtDisclosure._fields)
+
+    return (resDf, ddDf)
 
 
 class EdgarDebtScraper(object):
@@ -36,32 +41,41 @@ class EdgarDebtScraper(object):
     def __init__(self):
         pass
 
-    def _spToFile(self, urlGen, file, maxFiles):
+    def writeResultsToFile(self, results, filename):
+        df = pd.concat(results)
 
-        f = open(file, 'w')
-        processor = ResultGenerator()
-        for (i, url) in enumerate(urlGen):
-            res = processor.fileUrl2Result(url)
-            f.write(str(res))
+        df['DATE'] = pd.to_datetime(df['DATE'].astype(str))
+        years = list(set(df['DATE'].dt.year.values))
+        yearTuples = [(year, df[df['DATE'].dt.year == year]) for year in years]
 
-            if i % 25 == 0:
-                edgarScraperLog.info("Scraped {} total files".format(i))
+        for year, chunk in yearTuples:
+            fullFileName = filename+"_{}.csv".format(year)
+            fout = os.path.join(DATA_DIR, fullFileName)
+            edgarScraperLog.info(
+                'dumping {} records to file {}'.format(chunk.shape[0], fout)
+            )
+            fh = open(fout, 'a')
+            chunk.to_csv(fout, mode='a', header=fh.tell() == 0)
+            fh.close()
 
-            if (i >= maxFiles):
-                break
-
-        f.close()
-        edgarScraperLog.info("Job Finished {} total files".format(i))
-        return f
-
-    def _spToDf(self, urlGen, maxFiles):
+    def _runSingleProcess(self, urlGen, maxFiles):
         dictList = []
         processor = ResultGenerator()
+        print('hello')
+        print(urlGen)
+
+        import time
+        start_time = time.time()
         for (i, url) in enumerate(urlGen):
-            res = processor.fileUrl2Result(url)
+            print(url)
+            res, dd = processor.fileUrl2Result(url)
+            end_time = time.time()
+            elapse = end_time - start_time
+            start_time = end_time
+            print("Method: {}, Time {}".format(res.EXTRACTCODE, elapse))
             dictList.append(res._toDict())
 
-            if i % 25 == 0:
+            if i % 1 == 0:
                 edgarScraperLog.info("Scraped {} total files".format(i))
 
             if (i >= maxFiles):
@@ -73,41 +87,26 @@ class EdgarDebtScraper(object):
 
         return df
 
-    def _runSingleProcess(self, urlGen, outputType, outputFile, maxFiles):
-
-        if outputType == "file":
-            result = self._spToFile(urlGen, outputFile, maxFiles)
-
-        if outputType == "pandas":
-            result = self._spToDf(urlGen, maxFiles)
-
-        return result
-
     def _runMultiProcess(
         self,
         urlGen,
-        outputType,
         outputFile,
         maxFiles,
         nProcesses
     ):
-        urlGenIter = iteratorSlice(urlGen, 10)
+
+        sliceSize = 10
+        lineItems = []
+        disclosures = []
+        urlGenIter = iteratorSlice(urlGen, sliceSize)
         pool = multiprocessing.Pool(processes=nProcesses)
-        #results = []
-
-        if outputType == "file":
-            f = _mpToFile
-
-        if outputType == "pandas":
-            f = _mpToDf
-
-        queue = []
+        queue = deque()
 
         while (urlGenIter or queue):
             try:
                 queue.append(
                     pool.apply_async(
-                        f, [next(urlGenIter), outputFile]
+                        _mpJob, [next(urlGenIter), outputFile]
                     )
                 )
 
@@ -116,35 +115,33 @@ class EdgarDebtScraper(object):
 
             while (
                 queue and
-                (len(queue) >= pool._processes or not urlGenIter)
+                ((len(queue) >= 2*pool._processes) or not urlGenIter)
             ):
-                process = queue.pop(0)
-                # process.wait(1)
+                process = queue.popleft()
+                process.wait(.1)
                 if not process.ready():
                     queue.append(process)
                 else:
-                    i, df = process.get()
-                    df.set_index(['CIK', 'DATE'], inplace=True)
+                    lineItemChunk, disclosureChunk = process.get()
 
-                    fout = open(outputFile, 'a')
-                    df.to_csv(fout, mode='a', header=fout.tell() == 0)
-                    fout.close()
+                    if not (lineItemChunk is None):
 
-                    # results.append(result)
+                        lineItems.append(lineItemChunk)
+                        disclosures.append(disclosureChunk)
+
+                        if len(lineItems) >= int(1000 / sliceSize):
+
+                            self.writeResultsToFile(lineItems, outputFile)
+                            self.writeResultsToFile(disclosures, 'disclosures')
+
+                            lineItems = []
+                            disclosures = []
+
         pool.close()
-
-        # if outputType == "file":
-        #     return
-
-        # if outputType == "pandas":
-        #     df = pd.concat(results, axis=0)
-        #     df.set_index(['CIK', 'DATE'], inplace=True)
-        #     return df
 
     def runJob(
         self,
-        outputType,
-        outputFile=None,
+        outputFile,
         years=None,
         ciks=None,
         maxFiles=1000,
@@ -152,33 +149,25 @@ class EdgarDebtScraper(object):
         nIndexProcesses=8
     ):
 
-        urlGen = FileUrlGenerator(years, ciks, maxFiles, nIndexProcesses).getUrlGenerator()
-
-        if (outputType == 'file') and (outputFile is None):
-            raise ValueError(
-                "Must specifiy output file when writing to disk"
-            )
+        urlGen = FileUrlGenerator(
+            years,
+            ciks,
+            maxFiles,
+            nIndexProcesses
+        ).getUrlGenerator()
 
         if nScraperProcesses == 1:
             result = self._runSingleProcess(
                 urlGen,
-                outputType,
-                outputFile,
                 maxFiles
             )
 
         if nScraperProcesses > 1:
             result = self._runMultiProcess(
                 urlGen,
-                outputType,
                 outputFile,
                 maxFiles,
                 nScraperProcesses
             )
 
         return(result)
-
-
-
-
-

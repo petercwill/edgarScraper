@@ -21,7 +21,7 @@ class EdgarDebtScraperTest(unittest.TestCase):
         p = Stats(self.pr)
         p.strip_dirs()
         p.sort_stats('cumtime')
-        p.print_stats(20)
+        p.print_stats(200)
         print("\n--->>>")
 
     # def test_spToDF(self):
@@ -53,10 +53,10 @@ class EdgarDebtScraperTest(unittest.TestCase):
 
     def test_mpToDf(self):
         df = self.eds.runJob(
-            outputType='pandas',
-            outputFile='text.csv',
-            maxFiles=100000,
-            nScraperProcesses=4
+            outputFile='test',
+            years=[2011],
+            maxFiles=100,
+            nScraperProcesses=1
         )
         #print(df)
 

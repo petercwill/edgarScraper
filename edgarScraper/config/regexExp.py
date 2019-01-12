@@ -158,10 +158,10 @@ NOTES = re.compile(
 )
 
 XBRL_SECTION = re.compile(r"<XBRL[.\s\S]*?\/XBRL>", re.M | re.I)
-XBRL_CONTEXT_SECTION = re.compile(
-    r'<(?:(?:xbrli:context)|(?:context))[.\s\S]*?\/(?:(?:xbrli:context)|(?:context))>',
-    re.M | re.I
-)
+# XBRL_CONTEXT_SECTION = re.compile(
+#     r'<(?:(?:xbrli:context)|(?:context))[.\s\S]*?\/(?:(?:xbrli:context)|(?:context))>',
+#     re.M | re.I
+# )
 HTML_SECTION = re.compile(r"<HTML[.\s\S]*?\/HTML>", re.M | re.I)
 TABLE_SECTION = re.compile(r"<TABLE[.\s\S]*?\/TABLE>", re.M | re.I)
 TEXT_SECTION = re.compile(r"<TEXT[.\s\S]*?\/TEXT>", re.M | re.I)
@@ -173,3 +173,16 @@ EMPTY_OR_DOLLAR = re.compile(r'(^\s{0,}?\$\s{0,}?)|(^$)|\s+', re.I)
 TEXT_TABLE_COLUMNS = re.compile(r'.{0,}?<s>.{0,}?<c>.{0,}?<c>', re.I)
 
 EDGAR_SUB = re.compile('edgar/')
+DEBT_DISCLOSURE = re.compile(r'^us-gaap:DebtDisclosureTextBlock$', re.I)
+XBRL_CONTEXT_SECTION = re.compile(r'^(xbrli:context)|(context)$', re.I)
+
+XBRL_COMPOSITE_SOUP = re.compile(
+    "|".join(
+        [
+            r'(^us-gaap:'+term+r'$)' 
+            for term in SHORT_TERM_GAAP + LONG_TERM_GAAP
+        ] +
+        [r'(^us-gaap:DebtDisclosureTextBlock$)'] +
+        [r'(?:(?:xbrli:context)|(?:context))']
+    ), re.I
+)

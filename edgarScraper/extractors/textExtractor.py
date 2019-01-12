@@ -1,6 +1,8 @@
 import re
 import edgarScraper.config.regexExp as regexExp
 from edgarScraper.extractors.baseExtractor import BaseExtractor
+from edgarScraper.extractors.htmlExtractor import HTMLExtractor
+from bs4 import BeautifulSoup
 
 
 class TextExtractor(BaseExtractor):
@@ -20,7 +22,7 @@ class TextExtractor(BaseExtractor):
             elif re.search(regexExp.LIABILITIES, table):
                 yield table
 
-    def _getRelevantFreeText(self, text, chunkSize=100):
+    def _getRelevantFreeText(self, text, chunkSize=200):
         textLines = text.split('\n')
         regex = re.compile('BALANCE SHEET', re.IGNORECASE)
         lineNum = 0
@@ -83,11 +85,30 @@ class TextExtractor(BaseExtractor):
         )
         return self._cleanString(textSection)
 
+    def _tryHtml(self, text):
+
+        soup = BeautifulSoup(text, 'lxml')
+        res = HTMLExtractor()._processSection(soup)
+
+        if res:
+            return (res, None)
+
+        else:
+            return (res, soup.text)
+
     def _freeSearchText(self, text):
         results = []
         for chunk in self._getRelevantFreeText(text):
 
             for m in re.finditer(regexExp.FREE_TEXT_SHORT_TERM, chunk):
+                name = re.sub(r'\n', ' ', m.group('name'))
+                name = re.sub(r'\s{3,}', '   ', name)
+                value = m.group('value')
+                row_string = name + "   " + value
+                result = self._string2LineItem(row_string, 'TEXT')
+                results.append(result)
+
+            for m in re.finditer(regexExp.FREE_TEXT_LONG_TERM, chunk):
                 name = re.sub(r'\n', ' ', m.group('name'))
                 name = re.sub(r'\s{3,}', '   ', name)
                 value = m.group('value')
@@ -110,7 +131,11 @@ class TextExtractor(BaseExtractor):
     def _processSection(self, text):
         results = self._lookForTables(text)
         if not results:
-            results = self._freeSearchText(text)
+
+            (results, text) = self._tryHtml(text)
+
+            if not results:
+                results = self._freeSearchText(text)
 
         return results
 
