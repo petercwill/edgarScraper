@@ -139,11 +139,6 @@ XBRL_DATE = re.compile(
     re.I
 )
 
-# GAAP_RE_DICT = {
-#     tag: re.compile(r'^us-gaap:{}$'.format(tag), re.IGNORECASE)
-#     for tag in SHORT_TERM_GAAP + LONG_TERM_GAAP
-# }
-
 GAAP_RE = re.compile(
     "|".join(
         [r'(^us-gaap:'+term+r'$)' for term in SHORT_TERM_GAAP + LONG_TERM_GAAP]
@@ -158,10 +153,7 @@ NOTES = re.compile(
 )
 
 XBRL_SECTION = re.compile(r"<XBRL[.\s\S]*?\/XBRL>", re.M | re.I)
-# XBRL_CONTEXT_SECTION = re.compile(
-#     r'<(?:(?:xbrli:context)|(?:context))[.\s\S]*?\/(?:(?:xbrli:context)|(?:context))>',
-#     re.M | re.I
-# )
+
 HTML_SECTION = re.compile(r"<HTML[.\s\S]*?\/HTML>", re.M | re.I)
 TABLE_SECTION = re.compile(r"<TABLE[.\s\S]*?\/TABLE>", re.M | re.I)
 TEXT_SECTION = re.compile(r"<TEXT[.\s\S]*?\/TEXT>", re.M | re.I)
@@ -179,7 +171,7 @@ XBRL_CONTEXT_SECTION = re.compile(r'^(xbrli:context)|(context)$', re.I)
 XBRL_COMPOSITE_SOUP = re.compile(
     "|".join(
         [
-            r'(^us-gaap:'+term+r'$)' 
+            r'(^us-gaap:'+term+r'$)'
             for term in SHORT_TERM_GAAP + LONG_TERM_GAAP
         ] +
         [r'(^us-gaap:DebtDisclosureTextBlock$)'] +

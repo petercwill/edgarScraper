@@ -3,7 +3,7 @@ import os
 
 
 LOG_DIR = os.path.realpath(os.path.join(__file__, '../../../logs'))
-LOGGING_LEVEL = logging.INFO
+LOGGING_LEVEL = logging.DEBUG
 
 formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s %(message)s')
 formatter2 = logging.Formatter('%(message)s')

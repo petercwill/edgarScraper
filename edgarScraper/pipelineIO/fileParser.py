@@ -3,23 +3,16 @@ from edgarScraper.extractors.xbrlExtractor import XBRLExtractor
 from edgarScraper.extractors.htmlExtractor import HTMLExtractor
 from edgarScraper.extractors.textExtractor import TextExtractor
 from edgarScraper.config.log import urlLogger
-# from edgarScraper.pipelineIO.fileUrlGenerator import FileUrlGenerator
 from edgarScraper.pipelineIO.resultSet import ResultSet, DebtDisclosure
 
 
-class ResultGenerator(object):
+class FileParser(object):
 
-    def __init__(self, years=None, ciks=None, maxFiles=1000, nProcesses=8):
+    def __init__(self):
         self.log = urlLogger
         self.xbrlExtractor = XBRLExtractor()
         self.htmlExtractor = HTMLExtractor()
         self.textExtractor = TextExtractor()
-        # self.urlGen = FileUrlGenerator(years, ciks, nProcesses)
-        # self.maxFiles = maxFiles
-        # self.xbrlCount = 0
-        # self.htmlCount = 0
-        # self.textCount = 0
-        # self.failCount = 0
 
     def _getFile(self, url):
         self.log.debug('Getting {}'.format(url))

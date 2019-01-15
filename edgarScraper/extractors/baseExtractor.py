@@ -7,19 +7,31 @@ from edgarScraper.pipelineIO.resultSet import DebtLineItem
 
 
 class BaseExtractor(ABC):
+    '''
+    base class for different extractors
+    '''
 
     locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
     @abstractmethod
     def processText(self, url):
+        '''
+        Child class must implement
+        '''
         pass
 
     @abstractmethod
     def _getSections(self):
+        '''
+        Child class must implement
+        '''
         pass
 
     @abstractmethod
     def _processSection(self):
+        '''
+        Child class must implement
+        '''
         pass
 
     def _cleanString(self, string):
@@ -48,6 +60,10 @@ class BaseExtractor(ABC):
             return lineItem
 
     def _cleanAndFilterLineItem(self, lineItem):
+        '''
+        converts a raw line item into a cleaned one.  Filters out spurious
+        matches, and handles string cleaning and number parsing. 
+        '''
 
         name = re.sub(r'[^0-9a-zA-Z]+', ' ', lineItem.name).strip()
         if re.search(regexExp.FILTER, name):
@@ -73,6 +89,11 @@ class BaseExtractor(ABC):
                 return li
 
     def _matchRows(self, regexExp, row_string, kind):
+        '''
+        Attempts to form a raw line item from a given string, by matching
+        against list of regular expressions.  Returns cleaned line item.
+        '''
+
         m = re.match(regexExp, row_string)
         if m:
             rawLineItem = DebtLineItem(
@@ -86,6 +107,10 @@ class BaseExtractor(ABC):
             return cleanLineItem
 
     def _string2LineItem(self, string, kind):
+        '''
+        First searches for presence of short term debt signifiers.  Then
+        long term debt signifiers.
+        '''
         result = self._matchRows(
             regexExp.SHORT_TERM,
             string,

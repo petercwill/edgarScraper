@@ -29,7 +29,7 @@ def makeFilterRegex(negations, filters, spaceToken):
     products = product(negations, filters)
 
     filterPhrases = [
-        r'((?<!(' + n + r'))' + spaceToken  + i + ')'
+        r'((?<!(' + n + r'))' + spaceToken + i + ')'
         for (n, i) in products
     ]
 

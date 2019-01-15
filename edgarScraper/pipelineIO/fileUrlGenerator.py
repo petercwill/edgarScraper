@@ -73,7 +73,7 @@ class FileUrlGenerator(object):
         self.ciks = ciks
         self.maxFiles = maxFiles
         self.nProcesses = nProcesses
-        self.qtrRe = re.compile(r'QTR[2-4]')
+        self.qtrRe = re.compile(r'QTR[1-4]')
         self.fileRe = re.compile(r'form')
         self._makeYearRe()
         self._makeCikSet()

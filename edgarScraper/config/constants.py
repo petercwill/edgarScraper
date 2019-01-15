@@ -1,4 +1,9 @@
 import nltk
+import os
+
+DATA_DIR = os.path.realpath(
+    os.path.join(os.path.realpath(__file__), '../../../data/')
+)
 
 # form index files are fixed width formated.  Character positions of relevent
 # fields
