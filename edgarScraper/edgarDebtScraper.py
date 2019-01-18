@@ -28,13 +28,20 @@ def _mpJob(urlGen, file):
     if url.seqNo % 100 == 0:
         edgarScraperLog.info('finished consuming file {}'.format(url.seqNo))
 
-    #resDf = pd.DataFrame.from_records(resDictList)
-    #ddDf = pd.DataFrame.from_records(ddList, columns=DebtDisclosure._fields)
-
     return (resDictList, ddList)
 
 
 class EdgarDebtScraper(object):
+    """ Main Application
+
+        Suppors iteration through 10Qs and extraction of debt-levels and
+        disclosure text blocks for both single process and multiprocess jobs.
+
+        Args:
+            sliceSize (int): size of urlGenerator slice given to workers in
+                distributed jobs.
+
+        """
 
     def __init__(self, sliceSize=10):
         self.sliceSize = 10
@@ -106,8 +113,8 @@ class EdgarDebtScraper(object):
             self._recordResults(lineItems, disclosures, outputFile)
 
         if not outputFile:
-            lineItemDf = pd.concat(self.lineItemBuffer, axis=1)
-            disclosureDf = pd.concat(self.disclosureBuffer, axis=1)
+            lineItemDf = pd.concat(self.lineItemBuffer)
+            disclosureDf = pd.concat(self.disclosureBuffer)
             return (lineItemDf, disclosureDf)
 
     def _runMultiProcess(
@@ -169,8 +176,8 @@ class EdgarDebtScraper(object):
         edgarScraperLog.info("Job Finished")
 
         if not outputFile:
-            lineItemDf = pd.concat(self.lineItemBuffer, axis=1)
-            disclosureDf = pd.concat(self.disclosureBuffer, axis=1)
+            lineItemDf = pd.concat(self.lineItemBuffer)
+            disclosureDf = pd.concat(self.disclosureBuffer)
             return (lineItemDf, disclosureDf)
 
     def runJob(
@@ -182,6 +189,35 @@ class EdgarDebtScraper(object):
         nScraperProcesses=8,
         nIndexProcesses=8
     ):
+
+        """main entry method for scraping jobs.  Will write results to
+        the data directory in form <outputFile>_<year> and disclosures_year if
+        an outputFile is passed.  Otherwise, it will return a debtline item
+        dataframe and disclosures dataFrame if no outputFile is supplied.
+
+        Note:
+            - if a list of specific ciks is supplied, maxFile limit is ignored,
+            and the complete set of relevant urls will be eagerly built from
+            a distributed search routing.  If no ciks are supplied it will
+            lazily iterate through 10Q urls.
+            - for large jobs supply an outputFile so that results can be
+            periodically written to disk.  Otherwise, pandas dataFrames will
+            be built in memory.
+
+        Args:
+            outputFile: String name of file to write results to.
+            years: list of years to restrict 10Q iteration to.
+            ciks: list of ciks to restrict 10Q search to
+            maxFiles: integer number of maximum files to iterate through
+            nScraperProcesses: number of processes to use for processing 10Qs
+            nIndexProcesses: number of processes to use for distributed cik
+                search.
+
+        Returns:
+            None if an outputFile is supplied.
+            (dataFrame, dataFrame) if no outputFile is supplied 
+
+        """
 
         urlGen = FileUrlGenerator(
             years,

@@ -214,6 +214,11 @@ class FileUrlGenerator(object):
                 else:
                     results += process.get()
         pool.close()
+        results = [
+            IndexResult(i, r.date, r.name, r.cik, r.url)
+            for i, r in enumerate(results)
+        ]
+
         return results
 
     def getUrlGenerator(self):
