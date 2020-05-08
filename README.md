@@ -8,4 +8,4 @@ This Notebook is meant to demonstrate a few usage examples of the application I 
 
 A high level system diagram of the application is shown below.  The system was designed so that individual files could be processed in streaming fashion, meaning that applicable 10Qs would be lazily located and processed into final results in iterative fashion.
 
-![title](systemDiagram.jpg)
+![title](notebooks/systemDiagram.jpg)
