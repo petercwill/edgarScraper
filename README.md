@@ -54,28 +54,29 @@ The following shows an example job for processing the first 400 10Q files from t
     maxFiles = 400,
     nScraperProcesses=8
 )
+</code></pre>
 
-    2020-05-08 20:26:05,600 dailyIndLogger INFO Searching for 10Qs in https://www.sec.gov/Archives/edgar/daily-index/2010/QTR1/
-    2020-05-08 20:26:06,820 dailyIndLogger INFO Generated 25 10-Qs 
-    2020-05-08 20:26:07,214 dailyIndLogger INFO Generated 50 10-Qs 
-    2020-05-08 20:26:07,697 dailyIndLogger INFO Generated 75 10-Qs 
-    2020-05-08 20:26:07,709 dailyIndLogger INFO Generated 100 10-Qs 
-    2020-05-08 20:26:08,094 dailyIndLogger INFO Generated 125 10-Qs 
-    2020-05-08 20:26:08,512 dailyIndLogger INFO Generated 150 10-Qs 
-    2020-05-08 20:26:16,980 dailyIndLogger INFO Generated 175 10-Qs 
-    2020-05-08 20:26:18,919 dailyIndLogger INFO Generated 200 10-Qs 
-    2020-05-08 20:26:20,728 dailyIndLogger INFO Generated 225 10-Qs 
-    2020-05-08 20:26:24,839 edgarScraperLog INFO finished consuming file 100
-    2020-05-08 20:26:27,279 dailyIndLogger INFO Generated 250 10-Qs 
-    2020-05-08 20:26:30,364 dailyIndLogger INFO Generated 275 10-Qs 
-    2020-05-08 20:26:37,962 dailyIndLogger INFO Generated 300 10-Qs 
-    2020-05-08 20:26:38,716 edgarScraperLog INFO finished consuming file 200
-    2020-05-08 20:26:41,335 dailyIndLogger INFO Generated 325 10-Qs 
-    2020-05-08 20:26:42,440 dailyIndLogger INFO Generated 350 10-Qs 
-    2020-05-08 20:26:46,686 dailyIndLogger INFO Generated 375 10-Qs 
-    2020-05-08 20:26:51,002 dailyIndLogger INFO Generated 400 10-Qs 
-    2020-05-08 20:26:56,497 edgarScraperLog INFO finished consuming file 300
-    2020-05-08 20:27:09,220 edgarScraperLog INFO finished consuming file 400
+<pre><code>2020-05-08 20:26:05,600 dailyIndLogger INFO Searching for 10Qs in https://www.sec.gov/Archives/edgar/daily-index/2010/QTR1/
+2020-05-08 20:26:06,820 dailyIndLogger INFO Generated 25 10-Qs 
+2020-05-08 20:26:07,214 dailyIndLogger INFO Generated 50 10-Qs 
+2020-05-08 20:26:07,697 dailyIndLogger INFO Generated 75 10-Qs 
+2020-05-08 20:26:07,709 dailyIndLogger INFO Generated 100 10-Qs 
+2020-05-08 20:26:08,094 dailyIndLogger INFO Generated 125 10-Qs 
+2020-05-08 20:26:08,512 dailyIndLogger INFO Generated 150 10-Qs 
+2020-05-08 20:26:16,980 dailyIndLogger INFO Generated 175 10-Qs 
+2020-05-08 20:26:18,919 dailyIndLogger INFO Generated 200 10-Qs 
+2020-05-08 20:26:20,728 dailyIndLogger INFO Generated 225 10-Qs 
+2020-05-08 20:26:24,839 edgarScraperLog INFO finished consuming file 100
+2020-05-08 20:26:27,279 dailyIndLogger INFO Generated 250 10-Qs 
+2020-05-08 20:26:30,364 dailyIndLogger INFO Generated 275 10-Qs 
+2020-05-08 20:26:37,962 dailyIndLogger INFO Generated 300 10-Qs 
+2020-05-08 20:26:38,716 edgarScraperLog INFO finished consuming file 200
+2020-05-08 20:26:41,335 dailyIndLogger INFO Generated 325 10-Qs 
+2020-05-08 20:26:42,440 dailyIndLogger INFO Generated 350 10-Qs 
+2020-05-08 20:26:46,686 dailyIndLogger INFO Generated 375 10-Qs 
+2020-05-08 20:26:51,002 dailyIndLogger INFO Generated 400 10-Qs 
+2020-05-08 20:26:56,497 edgarScraperLog INFO finished consuming file 300
+2020-05-08 20:27:09,220 edgarScraperLog INFO finished consuming file 400
 </code></pre>
 
 The method returns two dataframes.  The first contains extracted debt information, the second contains related free text disclosures.
