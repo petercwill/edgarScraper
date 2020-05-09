@@ -12,10 +12,39 @@ This is an application designed for large-scale 10Q debt term extraction from th
 
 The application's main entry point is a method of the EdgarDebtScraper class called runJob.    
 
-<pre><code>
-from edgarScraper.edgarDebtScraper import EdgarDebtScraper
+<pre><code> from edgarScraper.edgarDebtScraper import EdgarDebtScraper
 eds = EdgarDebtScraper()
 ? eds.runJob()
+
+
+Signature: eds.runJob(outputFile=None, years=None, ciks=None, maxFiles=1000, nScraperProcesses=8, nIndexProcesses=8)
+Docstring:
+main entry method for scraping jobs.  Will write results to
+the data directory in form <outputFile>_<year> and disclosures_year if
+an outputFile is passed.  Otherwise, it will return a debtline item
+dataframe and disclosures dataFrame if no outputFile is supplied.
+
+Note:
+    - if a list of specific ciks is supplied, maxFile limit is ignored,
+    and the complete set of relevant urls will be eagerly built from
+    a distributed search routing.  If no ciks are supplied it will
+    lazily iterate through 10Q urls.
+    - for large jobs supply an outputFile so that results can be
+    periodically written to disk.  Otherwise, pandas dataFrames will
+    be built in memory.
+
+Args:
+    outputFile: String name of file to write results to.
+    years: list of years to restrict 10Q iteration to.
+    ciks: list of ciks to restrict 10Q search to
+    maxFiles: integer number of maximum files to iterate through
+    nScraperProcesses: number of processes to use for processing 10Qs
+    nIndexProcesses: number of processes to use for distributed cik
+        search.
+
+Returns:
+    None if an outputFile is supplied.
+    (dataFrame, dataFrame) if no outputFile is supplied 
 </code></pre>
 
 ## Data Heirachy
