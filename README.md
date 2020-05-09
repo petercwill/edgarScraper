@@ -3,7 +3,7 @@
 This is an application designed for large-scale 10Q debt term extraction from the EDGAR database.  
 
 - after cloning the git repo, try 'python -m unittest' and verify  that all tests run successfully. 
-- usage examples, implementation notes, and additional data analysis are provided in the notebook directory.
+- Additional usage examples, implementation notes, and analysis are provided in the notebook directory.
 - Using this application I was able to process 561,794 10Qs from 1994 - 2019 with roughly 85% of 10Qs yielding short and longterm debt levels.
 
 ![title](notebooks/systemDiagram.jpg)
