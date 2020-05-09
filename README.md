@@ -46,7 +46,7 @@ Returns:
     (dataFrame, dataFrame) if no outputFile is supplied 
 </code></pre>
 
-## Usage Example
+## Example
 The following shows an example job for processing the first 400 10Q files from the year 2010 using 4 processes. It should take on the order of 1-2 minutes to run and return two dataFrames. The first contains extracted line item information, the second contains free text debt disclosures. Logging output can be suppressed by changing the logging level set in edgarScraper.config.log.py
 
 <pre><code>debtDf, disclosureDf = eds.runJob(
