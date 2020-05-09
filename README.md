@@ -8,6 +8,15 @@ This is an application designed for large-scale 10Q debt term extraction from th
 
 ![title](notebooks/systemDiagram.jpg)
 
+## Usage Example
+
+The application's main entry point is a method of the EdgarDebtScraper class called runJob.    
+
+<pre><code>
+from edgarScraper.edgarDebtScraper import EdgarDebtScraper
+eds = EdgarDebtScraper()
+? eds.runJob()
+</code></pre>
 
 ## Data Heirachy
 
