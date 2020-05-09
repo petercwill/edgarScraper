@@ -8,44 +8,80 @@ This is an application designed for large-scale 10Q debt term extraction from th
 
 ![title](notebooks/systemDiagram.jpg)
 
-## Usage Example
-
 The application's main entry point is a method of the EdgarDebtScraper class called runJob.    
 
-<pre><code> from edgarScraper.edgarDebtScraper import EdgarDebtScraper
+<pre><code>from edgarScraper.edgarDebtScraper import EdgarDebtScraper
 eds = EdgarDebtScraper()
 ? eds.runJob()
 
+    Signature: eds.runJob(outputFile=None, years=None, ciks=None, maxFiles=1000, nScraperProcesses=8, nIndexProcesses=8)
+    Docstring:
+    main entry method for scraping jobs.  Will write results to
+    the data directory in form <outputFile>_<year> and disclosures_year if
+    an outputFile is passed.  Otherwise, it will return a debtline item
+    dataframe and disclosures dataFrame if no outputFile is supplied.
 
-Signature: eds.runJob(outputFile=None, years=None, ciks=None, maxFiles=1000, nScraperProcesses=8, nIndexProcesses=8)
-Docstring:
-main entry method for scraping jobs.  Will write results to
-the data directory in form <outputFile>_<year> and disclosures_year if
-an outputFile is passed.  Otherwise, it will return a debtline item
-dataframe and disclosures dataFrame if no outputFile is supplied.
+    Note:
+        - if a list of specific ciks is supplied, maxFile limit is ignored,
+        and the complete set of relevant urls will be eagerly built from
+        a distributed search routing.  If no ciks are supplied it will
+        lazily iterate through 10Q urls.
+        - for large jobs supply an outputFile so that results can be
+        periodically written to disk.  Otherwise, pandas dataFrames will
+        be built in memory.
 
-Note:
-    - if a list of specific ciks is supplied, maxFile limit is ignored,
-    and the complete set of relevant urls will be eagerly built from
-    a distributed search routing.  If no ciks are supplied it will
-    lazily iterate through 10Q urls.
-    - for large jobs supply an outputFile so that results can be
-    periodically written to disk.  Otherwise, pandas dataFrames will
-    be built in memory.
+    Args:
+        outputFile: String name of file to write results to.
+        years: list of years to restrict 10Q iteration to.
+        ciks: list of ciks to restrict 10Q search to
+        maxFiles: integer number of maximum files to iterate through
+        nScraperProcesses: number of processes to use for processing 10Qs
+        nIndexProcesses: number of processes to use for distributed cik
+            search.
 
-Args:
-    outputFile: String name of file to write results to.
-    years: list of years to restrict 10Q iteration to.
-    ciks: list of ciks to restrict 10Q search to
-    maxFiles: integer number of maximum files to iterate through
-    nScraperProcesses: number of processes to use for processing 10Qs
-    nIndexProcesses: number of processes to use for distributed cik
-        search.
-
-Returns:
-    None if an outputFile is supplied.
-    (dataFrame, dataFrame) if no outputFile is supplied 
+    Returns:
+        None if an outputFile is supplied.
+        (dataFrame, dataFrame) if no outputFile is supplied 
 </code></pre>
+
+## Usage Example
+The following shows an example job for processing the first 400 10Q files from the year 2010 using 4 processes. It should take on the order of 1-2 minutes to run and return two dataFrames. The first contains extracted line item information, the second contains free text debt disclosures. Logging output can be suppressed by changing the logging level set in edgarScraper.config.log.py
+
+<pre><code>debtDf, disclosureDf = eds.runJob(
+    years = [2010],
+    maxFiles = 400,
+    nScraperProcesses=8
+)
+
+    2020-05-08 20:26:05,600 dailyIndLogger INFO Searching for 10Qs in https://www.sec.gov/Archives/edgar/daily-index/2010/QTR1/
+    2020-05-08 20:26:06,820 dailyIndLogger INFO Generated 25 10-Qs 
+    2020-05-08 20:26:07,214 dailyIndLogger INFO Generated 50 10-Qs 
+    2020-05-08 20:26:07,697 dailyIndLogger INFO Generated 75 10-Qs 
+    2020-05-08 20:26:07,709 dailyIndLogger INFO Generated 100 10-Qs 
+    2020-05-08 20:26:08,094 dailyIndLogger INFO Generated 125 10-Qs 
+    2020-05-08 20:26:08,512 dailyIndLogger INFO Generated 150 10-Qs 
+    2020-05-08 20:26:16,980 dailyIndLogger INFO Generated 175 10-Qs 
+    2020-05-08 20:26:18,919 dailyIndLogger INFO Generated 200 10-Qs 
+    2020-05-08 20:26:20,728 dailyIndLogger INFO Generated 225 10-Qs 
+    2020-05-08 20:26:24,839 edgarScraperLog INFO finished consuming file 100
+    2020-05-08 20:26:27,279 dailyIndLogger INFO Generated 250 10-Qs 
+    2020-05-08 20:26:30,364 dailyIndLogger INFO Generated 275 10-Qs 
+    2020-05-08 20:26:37,962 dailyIndLogger INFO Generated 300 10-Qs 
+    2020-05-08 20:26:38,716 edgarScraperLog INFO finished consuming file 200
+    2020-05-08 20:26:41,335 dailyIndLogger INFO Generated 325 10-Qs 
+    2020-05-08 20:26:42,440 dailyIndLogger INFO Generated 350 10-Qs 
+    2020-05-08 20:26:46,686 dailyIndLogger INFO Generated 375 10-Qs 
+    2020-05-08 20:26:51,002 dailyIndLogger INFO Generated 400 10-Qs 
+    2020-05-08 20:26:56,497 edgarScraperLog INFO finished consuming file 300
+    2020-05-08 20:27:09,220 edgarScraperLog INFO finished consuming file 400
+</code></pre>
+
+The method returns two dataframes.  The first contains extracted debt information, the second contains related free text disclosures.
+
+<pre><code>debtDf.set_index('NAME').head().T
+</code></pre>
+
+
 
 ## Data Heirachy
 
